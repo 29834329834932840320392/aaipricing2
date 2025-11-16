@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nissan Competitive Pricing Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚗 Nissan Competitive Pricing Analyzer</h1>
+            <p class="subtitle">Automated pricing intelligence for your dealership</p>
+            <div class="test-mode-badge">
+                ⚠️ TESTING MODE: Processing {{ vdp_limit }} VDPs per sitemap
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Input Form -->
+            <div id="input-section" class="card">
+                <h2>Configuration</h2>
+
+                <form id="analysis-form">
+                    <div class="form-section">
+                        <h3>Competitor Sitemap URLs</h3>
+                        <p class="form-help">Enter the XML sitemap URLs for each competitor. At least one is required.</p>
+
+                        <div class="form-group">
+                            <label for="gunn_nissan_url">Gunn Nissan Sitemap URL</label>
+                            <input type="url" id="gunn_nissan_url" name="gunn_nissan_url"
+                                   placeholder="https://www.gunnnissan.com/sitemap.xml">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ingram_park_url">Ingram Park Nissan Sitemap URL</label>
+                            <input type="url" id="ingram_park_url" name="ingram_park_url"
+                                   placeholder="https://www.ingramparknissan.com/sitemap.xml">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="boerne_url">Nissan of Boerne Sitemap URL</label>
+                            <input type="url" id="boerne_url" name="boerne_url"
+                                   placeholder="https://www.nissanboerne.com/sitemap.xml">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="champion_nb_url">Champion Nissan (New Braunfels) Sitemap URL</label>
+                            <input type="url" id="champion_nb_url" name="champion_nb_url"
+                                   placeholder="https://www.championnissannb.com/sitemap.xml">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>OpenAI Configuration</h3>
+                        <p class="form-help">Your API key is used only for this session and is never stored.</p>
+
+                        <div class="form-group">
+                            <label for="openai_api_key">OpenAI API Key *</label>
+                            <input type="password" id="openai_api_key" name="openai_api_key"
+                                   placeholder="sk-..." required>
+                            <small>Required for intelligent data extraction</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="start-btn">
+                        🚀 Run Analysis
+                    </button>
+                </form>
+            </div>
+
+            <!-- Progress Section -->
+            <div id="progress-section" class="card" style="display: none;">
+                <h2>Analysis Progress</h2>
+
+                <div class="progress-info">
+                    <div class="status-message" id="status-message">Initializing...</div>
+
+                    <div class="progress-stats">
+                        <div class="stat">
+                            <span class="stat-label">Current Competitor:</span>
+                            <span class="stat-value" id="current-competitor">-</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Competitors Completed:</span>
+                            <span class="stat-value" id="completed-competitors">0</span> /
+                            <span class="stat-value" id="total-competitors">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Current VDP:</span>
+                            <span class="stat-value" id="current-vdp">0</span> /
+                            <span class="stat-value" id="total-vdps">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Total VDPs Processed:</span>
+                            <span class="stat-value" id="processed-vdps">0</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+
+                <!-- Errors Section -->
+                <div id="errors-container" style="display: none;">
+                    <h3>⚠️ Errors</h3>
+                    <div class="errors-list" id="errors-list"></div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results-section" class="card" style="display: none;">
+                <h2>✅ Analysis Complete</h2>
+
+                <div class="results-summary">
+                    <div class="summary-stat">
+                        <div class="summary-number" id="total-results">0</div>
+                        <div class="summary-label">Vehicles Analyzed</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="summary-number" id="total-errors">0</div>
+                        <div class="summary-label">Errors</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="download-btn" class="btn btn-success">
+                        📥 Download CSV Report
+                    </button>
+                    <button id="new-analysis-btn" class="btn btn-secondary">
+                        🔄 New Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2025 Nissan Competitive Pricing Analyzer | Powered by OpenAI</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
