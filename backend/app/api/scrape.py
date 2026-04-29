@@ -1,7 +1,7 @@
 """
 Scraping API routes
 """
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
@@ -10,8 +10,7 @@ from app.models.scrape_job import ScrapeJob, ScrapeJobStatus
 from app.models.user import User
 from app.schemas.scrape import ScrapeJobCreate, ScrapeJobResponse
 from app.auth.dependencies import get_current_active_user
-# TODO: Import Celery task when implemented
-# from app.tasks.scrape_task import scrape_dealer_task
+from app.tasks.scrape_task import scrape_dealer_task, scrape_competitor_task
 
 router = APIRouter()
 
@@ -35,17 +34,19 @@ async def trigger_dealer_scrape(
 
     jobs = []
 
-    # TODO: Implement actual Celery task triggering
-    # For now, create placeholder jobs
-
     # Create job for dealer
     dealer_job = ScrapeJob(
-        task_id=f"placeholder-dealer-{dealer_id}",
+        task_id="pending",  # Will be updated when Celery task starts
         dealer_id=dealer_id,
         status=ScrapeJobStatus.PENDING,
         triggered_by_user_id=current_user.id,
     )
     db.add(dealer_job)
+    db.flush()  # Get the job ID
+
+    # Trigger Celery task
+    celery_task = scrape_dealer_task.delay(dealer_id, dealer_job.id)
+    dealer_job.task_id = celery_task.id
     jobs.append(dealer_job)
 
     # Create jobs for competitors if requested
@@ -53,12 +54,17 @@ async def trigger_dealer_scrape(
         for competitor in dealer.competitors:
             if competitor.is_active:
                 competitor_job = ScrapeJob(
-                    task_id=f"placeholder-competitor-{competitor.id}",
+                    task_id="pending",
                     competitor_id=competitor.id,
                     status=ScrapeJobStatus.PENDING,
                     triggered_by_user_id=current_user.id,
                 )
                 db.add(competitor_job)
+                db.flush()
+
+                # Trigger Celery task
+                celery_task = scrape_competitor_task.delay(competitor.id, competitor_job.id)
+                competitor_job.task_id = celery_task.id
                 jobs.append(competitor_job)
 
     db.commit()
