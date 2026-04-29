@@ -1,329 +1,311 @@
-# Nissan Competitive Pricing Analyzer
+# Ancira Competitive Intelligence Dashboard
 
-A cloud-hosted web application that automates competitive pricing analysis for Nissan dealerships. This tool scrapes competitor websites, uses AI to extract pricing data, and generates comprehensive CSV reports.
+Production-grade web application for competitive pricing and inventory analysis across Ancira Auto Group dealerships.
 
-## Features
+## Overview
 
-- **Automated Sitemap Parsing**: Extracts new Nissan vehicle VDP URLs from competitor XML sitemaps
-- **Intelligent Data Extraction**: Uses OpenAI GPT-4 to intelligently extract vehicle data regardless of website structure
-- **Real-time Progress Tracking**: Monitor analysis progress with live updates
-- **CSV Export**: Download comprehensive pricing reports
-- **Error Handling**: Robust error handling with detailed error logs
-- **Testing Mode**: Process limited VDPs for testing (configurable)
+This system scrapes new car inventory from Ancira dealerships and their competitors, then provides a clean comparison dashboard. Built with a **platform-based scraping architecture** - scrapers are organized by website platform (Dealer Inspire, DealerOn, etc.) rather than individual dealers.
 
-## Data Extracted
+## Architecture
 
-For each vehicle, the tool extracts:
-- Competitor Name
-- VDP URL
-- VIN (Vehicle Identification Number)
-- Year
-- Make (Nissan)
-- Model (Altima, Rogue, Sentra, etc.)
-- Trim (SV, SL, Platinum, etc.)
-- MSRP
-- Sale Price (final customer price after all discounts)
-- Date Scraped
+### Tech Stack
 
-## Quick Start
+- **Backend**: FastAPI (Python 3.11+)
+- **Database**: PostgreSQL with SQLAlchemy ORM
+- **Task Queue**: Celery + Redis (for background scraping)
+- **Scraping**: Playwright (headless Chromium)
+- **AI**: OpenAI GPT-5.4-mini for intelligent data extraction
+- **Frontend**: React + Vite + Tailwind CSS (to be implemented)
+- **Deployment**: Ubuntu VPS + NGINX + systemd
 
-### Prerequisites
+### Key Design Decisions
 
-- Python 3.11+
-- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+1. **Platform-Based Scrapers**: Each website platform (e.g., "Dealer Inspire") has its own scraper module. Adding support for a new platform = adding a new module, not modifying core logic.
 
-### Local Installation
+2. **Stateless JWT Auth**: Fast, scalable authentication with access tokens (30 min) and refresh tokens (7 days).
 
-1. **Clone the repository**
-```bash
-git clone <your-repo-url>
-cd aaipricing2
-```
+3. **Encrypted Secrets**: OpenAI API keys encrypted at rest using Fernet (AES-128).
 
-2. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
+4. **Fuzzy Matching**: Vehicle comparison uses tight (90%+) similarity matching on Year/Make/Model/Trim.
 
-3. **Configure environment variables**
-```bash
-cp .env.example .env
-# Edit .env and set your FLASK_SECRET_KEY
-```
-
-4. **Run the application**
-```bash
-python app.py
-```
-
-5. **Open your browser**
-```
-http://localhost:5000
-```
-
-## Deployment to Replit (Recommended for Free Hosting)
-
-### Step 1: Create a Replit Account
-1. Go to [Replit.com](https://replit.com)
-2. Sign up for a free account
-
-### Step 2: Import Project
-1. Click **"Create Repl"**
-2. Select **"Import from GitHub"**
-3. Paste your GitHub repository URL
-4. Click **"Import from GitHub"**
-
-### Step 3: Configure Environment Variables
-1. In your Repl, click on **"Secrets"** (lock icon in the left sidebar)
-2. Add the following secrets:
-   - Key: `FLASK_SECRET_KEY`, Value: `your-random-secret-key-here`
-   - Key: `VDP_LIMIT`, Value: `3` (for testing)
-   - Key: `PORT`, Value: `5000`
-
-### Step 4: Run the Application
-1. Click the **"Run"** button
-2. Replit will automatically install dependencies and start the server
-3. Your app will be available at the URL shown in the webview (e.g., `https://your-repl-name.your-username.repl.co`)
-
-### Step 5: Access Your Application
-1. Click the URL in the webview or click **"Open in new tab"**
-2. You should see the Nissan Competitive Pricing Analyzer interface
-
-## Deployment to Other Free Hosting Services
-
-### Render.com
-
-1. Create a free account at [Render.com](https://render.com)
-2. Click **"New +" → "Web Service"**
-3. Connect your GitHub repository
-4. Configure:
-   - **Name**: nissan-pricing-analyzer
-   - **Environment**: Python 3
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn app:app`
-5. Add environment variables in the "Environment" section
-6. Click **"Create Web Service"**
-
-### Railway.app
-
-1. Create a free account at [Railway.app](https://railway.app)
-2. Click **"New Project" → "Deploy from GitHub repo"**
-3. Select your repository
-4. Railway will auto-detect Python and deploy
-5. Add environment variables in the "Variables" tab
-6. Your app will be available at the provided URL
-
-## Configuration
-
-### Testing Mode (Default)
-
-By default, the application processes only **3 VDPs per sitemap** for testing purposes. This is controlled by the `VDP_LIMIT` environment variable.
-
-**To change the limit:**
-
-1. **In .env file** (for local development):
-```env
-VDP_LIMIT=3  # Change to desired number or remove for unlimited
-```
-
-2. **In Replit Secrets** (for Replit deployment):
-   - Edit the `VDP_LIMIT` secret
-   - Change value to desired number (e.g., `10`, `50`, `100`)
-   - Or remove it entirely for unlimited processing
-
-3. **Restart the application** after making changes
-
-### Production Mode (Unlimited VDPs)
-
-To process all VDPs without limit:
-
-1. Set `VDP_LIMIT` to a very high number (e.g., `10000`) or
-2. Modify `app.py` line 18 to:
-```python
-VDP_LIMIT = int(os.getenv('VDP_LIMIT', 10000))  # High default
-```
-
-## Usage
-
-1. **Navigate to the application URL**
-
-2. **Enter Competitor Sitemap URLs**
-   - At least one sitemap URL is required
-   - Example sitemaps:
-     - Gunn Nissan: `https://www.gunnnissan.com/sitemap.xml`
-     - Ingram Park: `https://www.ingramparknissan.com/sitemap.xml`
-     - Nissan of Boerne: `https://www.nissanboerne.com/sitemap.xml`
-     - Champion Nissan: `https://www.championnissannb.com/sitemap.xml`
-
-3. **Enter OpenAI API Key**
-   - Your API key is used only for this session
-   - It is never stored on disk
-   - Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys)
-
-4. **Click "Run Analysis"**
-   - The application will start processing
-   - Real-time progress will be displayed
-   - Errors (if any) will be shown in the errors section
-
-5. **Download CSV Report**
-   - When complete, click "Download CSV Report"
-   - The CSV contains all extracted vehicle data
-
-6. **Run New Analysis**
-   - Click "New Analysis" to start over
-
-## Example VDPs (for Testing)
-
-Use these VDP URLs to test the scraper with different website structures:
-
-- **Gunn Nissan**: https://www.gunnnissan.com/new-San+Antonio-2025-Nissan-Sentra-SV-3N1AB8CV2SY404093
-- **Ingram Park**: https://www.ingramparknissan.com/inventory/new-2025-nissan-rogue-sv-fwd-4d-sport-utility-5n1bt3ba1sc851633/
-- **Nissan of Boerne**: https://www.nissanboerne.com/viewdetails/new/5n1dr3ba5sc293857/2025-nissan-pathfinder-sport-utility
-- **Champion Nissan NB**: https://www.championnissannb.com/auto/new-2025-nissan-murano-sl-new-braunfels-tx/111738776/
+5. **Fresh Data Only**: Dashboard displays vehicles scraped within the last 24 hours by default (configurable).
 
 ## Project Structure
 
 ```
 aaipricing2/
-├── app.py                 # Main Flask application
-├── scraper.py            # Web scraping and sitemap parsing logic
-├── ai_extractor.py       # OpenAI integration for data extraction
-├── requirements.txt      # Python dependencies
-├── .env                  # Environment variables (not in git)
-├── .env.example          # Environment variables template
-├── .replit               # Replit configuration
-├── .gitignore           # Git ignore file
-├── templates/
-│   └── index.html       # Main HTML template
-├── static/
-│   ├── css/
-│   │   └── style.css    # Styles
-│   └── js/
-│       └── main.js      # Frontend JavaScript
-├── exports/             # CSV exports (auto-created)
-└── README.md            # This file
+├── backend/
+│   ├── app/
+│   │   ├── models/          # SQLAlchemy database models
+│   │   ├── schemas/         # Pydantic validation schemas
+│   │   ├── api/             # FastAPI route modules
+│   │   ├── auth/            # Authentication & encryption
+│   │   ├── scrapers/        # Platform-specific scrapers (TODO)
+│   │   ├── tasks/           # Celery background tasks (TODO)
+│   │   ├── utils/           # Utilities
+│   │   ├── config.py        # Application settings
+│   │   ├── database.py      # Database connection
+│   │   └── main.py          # FastAPI application
+│   ├── alembic/             # Database migrations
+│   ├── requirements.txt
+│   └── .env.example
+├── frontend/                # React app (TODO)
+├── nginx/                   # NGINX config (TODO)
+├── systemd/                 # Systemd service files (TODO)
+└── docs/                    # Documentation
 ```
 
-## API Endpoints
+## Database Schema
 
-### `GET /`
-Renders the main application interface
+### Core Models
 
-### `POST /api/start-analysis`
-Starts a new pricing analysis job
+- **User**: Authentication (username/password + WebAuthn support)
+- **SystemSettings**: Global settings (OpenAI API key, model selection)
+- **WebsitePlatform**: Dealer website platforms (Dealer Inspire, DealerOn, etc.)
+- **Dealer**: Ancira dealerships
+- **Competitor**: Competitor dealerships (up to 5 per Ancira dealer)
+- **Vehicle**: Scraped inventory data
+- **ScrapeJob**: Background scraping job tracking
 
-**Request Body:**
-```json
-{
-  "gunn_nissan_url": "https://...",
-  "ingram_park_url": "https://...",
-  "boerne_url": "https://...",
-  "champion_nb_url": "https://...",
-  "openai_api_key": "sk-..."
-}
+## Setup Instructions
+
+### Prerequisites
+
+- Python 3.11+
+- PostgreSQL 14+
+- Redis 7+
+- Node.js 18+ (for frontend)
+
+### Backend Setup
+
+1. **Clone repository**
+   ```bash
+   cd /path/to/project
+   ```
+
+2. **Create virtual environment**
+   ```bash
+   cd backend
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Install Playwright browsers**
+   ```bash
+   playwright install chromium
+   ```
+
+5. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database credentials and secrets
+   ```
+
+   **Generate encryption key**:
+   ```python
+   from cryptography.fernet import Fernet
+   print(Fernet.generate_key().decode())
+   # Copy this value to ENCRYPTION_KEY in .env
+   ```
+
+6. **Create database**
+   ```bash
+   createdb ancira_intel
+   ```
+
+7. **Run database migrations**
+   ```bash
+   alembic upgrade head
+   ```
+
+8. **Start development server**
+   ```bash
+   python app/main.py
+   # Or with uvicorn:
+   uvicorn app.main:app --reload --port 8000
+   ```
+
+9. **Access API docs**
+   - Interactive docs: http://localhost:8000/docs
+   - Alternative docs: http://localhost:8000/redoc
+
+### Initial Login
+
+On first startup, an admin user is created:
+- **Username**: `admin` (configurable in .env)
+- **Password**: `ChangeMe123!` (configurable in .env)
+
+**⚠️ Change this immediately in production!**
+
+## API Overview
+
+### Authentication
+- `POST /api/auth/login` - User login (returns JWT)
+- `POST /api/auth/logout` - User logout
+
+### Admin Panel
+- `GET /api/admin/users` - List all users
+- `POST /api/admin/users` - Create user
+- `PUT /api/admin/users/{id}` - Update user
+- `DELETE /api/admin/users/{id}` - Delete user
+- `GET /api/admin/settings` - Get system settings
+- `PUT /api/admin/settings` - Update settings (OpenAI key/model)
+
+### Website Platforms
+- `GET /api/platforms` - List platforms
+- `POST /api/platforms` - Create platform (admin only)
+- `DELETE /api/platforms/{id}` - Delete platform (admin only)
+
+### Dealers & Competitors
+- `GET /api/dealers` - List Ancira dealers
+- `POST /api/dealers` - Create dealer (admin only)
+- `GET /api/dealers/{id}` - Get dealer details
+- `PUT /api/dealers/{id}` - Update dealer (admin only)
+- `DELETE /api/dealers/{id}` - Delete dealer (admin only)
+- `POST /api/dealers/{id}/competitors` - Add competitor (admin only, max 5)
+- `DELETE /api/dealers/competitors/{id}` - Remove competitor (admin only)
+
+### Vehicles (Dashboard)
+- `GET /api/vehicles/dealer/{id}` - Get dealer vehicles (fresh data)
+- `GET /api/vehicles/competitor/{id}` - Get competitor vehicles
+- `GET /api/vehicles/stats/dealer/{id}` - Get dealer stats
+
+### Scraping
+- `POST /api/scrape/dealer/{id}` - Trigger scrape for dealer + competitors
+- `GET /api/scrape/status/{job_id}` - Get scrape job status
+- `GET /api/scrape/dealer/{id}/recent` - Get recent scrape jobs
+
+## User Roles
+
+### Admin
+- Full access to all features
+- User management
+- System settings (API keys, models)
+- Platform management
+- Dealer/competitor configuration
+
+### User
+- View dashboards
+- Trigger data refreshes
+- Cannot modify system configuration
+- Can reset own password
+
+## Next Steps (TODO)
+
+### Phase 1: Scraping Infrastructure (IN PROGRESS)
+- [ ] Implement base scraper class
+- [ ] Build platform router
+- [ ] Create Dealer Inspire scraper
+- [ ] Integrate OpenAI for data extraction
+- [ ] Set up Celery workers
+- [ ] Add WebSocket/SSE for real-time progress updates
+
+### Phase 2: Frontend
+- [ ] React app scaffold
+- [ ] Authentication UI (login, password reset)
+- [ ] Admin panel (user mgmt, settings, platforms, dealers)
+- [ ] Dashboard (vehicle comparison with fuzzy matching)
+- [ ] Real-time scrape progress UI
+
+### Phase 3: Production Deployment
+- [ ] NGINX configuration
+- [ ] Systemd service files
+- [ ] Let's Encrypt SSL setup
+- [ ] Log rotation
+- [ ] Monitoring (uptime, error tracking)
+
+### Phase 4: Enhancements
+- [ ] WebAuthn/Passkey support
+- [ ] Additional platform scrapers (DealerOn, Dealer.com, etc.)
+- [ ] Historical price tracking
+- [ ] Email notifications
+- [ ] Scheduled auto-refresh (cron)
+- [ ] Remove 10-VDP test limit
+
+## Development Notes
+
+### Database Migrations
+
+**Create a new migration**:
+```bash
+alembic revision --autogenerate -m "Description of changes"
 ```
 
-**Response:**
-```json
-{
-  "job_id": "uuid",
-  "message": "Analysis started successfully"
-}
+**Apply migrations**:
+```bash
+alembic upgrade head
 ```
 
-### `GET /api/job-status/<job_id>`
-Gets the current status of an analysis job
-
-**Response:**
-```json
-{
-  "job_id": "uuid",
-  "status": "running",
-  "progress": {
-    "current_competitor": "Gunn Nissan",
-    "total_competitors": 4,
-    "completed_competitors": 1,
-    "current_vdp": 2,
-    "total_vdps": 3,
-    "processed_vdps": 5
-  },
-  "completed": false,
-  "total_results": 5,
-  "total_errors": 0,
-  "errors": []
-}
+**Rollback one migration**:
+```bash
+alembic downgrade -1
 ```
 
-### `GET /api/download-csv/<job_id>`
-Downloads the CSV report for a completed job
+### Testing
 
-### `GET /health`
-Health check endpoint
+```bash
+# Run tests (when implemented)
+pytest
 
-**Response:**
-```json
-{
-  "status": "healthy",
-  "vdp_limit": 3
-}
+# Run with coverage
+pytest --cov=app tests/
 ```
 
-## Troubleshooting
+### Code Quality
 
-### Issue: "Failed to parse sitemap"
-- **Solution**: Verify the sitemap URL is correct and accessible
-- Try opening the sitemap URL in your browser to confirm it's valid XML
+```bash
+# Format code
+black app/
 
-### Issue: "AI extraction error"
-- **Solution**: Verify your OpenAI API key is valid and has available credits
-- Check that your API key has access to GPT-4 models
+# Lint code
+ruff check app/
+```
 
-### Issue: "No VDPs found"
-- **Solution**: The sitemap may not contain new Nissan vehicle URLs
-- Try using a different sitemap or verify the sitemap contains new inventory
+## Scraping Architecture
 
-### Issue: Application not loading on Replit
-- **Solution**: Check that all environment variables are set in Replit Secrets
-- Click "Run" again to restart the application
-- Check the console for error messages
+### Platform-Based Design
 
-## Cost Considerations
+Scrapers are organized by **website platform**, not individual dealers. This makes the system scalable:
 
-### OpenAI API Costs
-- The application uses GPT-4o-mini for cost efficiency
-- Approximate cost: $0.0001-0.0003 per VDP processed
-- For 12 VDPs (4 competitors × 3 VDPs): ~$0.001-0.004
-- For 400 VDPs (production): ~$0.04-0.12
+1. Identify dealer's platform (stored in `Dealer.platform_id`)
+2. Route to appropriate platform scraper
+3. Platform scraper handles sitemap parsing + VDP extraction
+4. OpenAI assists with data extraction from HTML
 
-### Free Hosting Limits
-- **Replit Free Tier**: Always-on, unlimited projects, 1GB RAM
-- **Render Free Tier**: 750 hours/month, sleeps after 15 min inactivity
-- **Railway Free Tier**: $5 credit/month, pay-as-you-go after
+### Adding a New Platform
 
-## Security Notes
+See `docs/PLATFORMS.md` (to be created) for detailed instructions.
 
-- OpenAI API keys are stored only in session memory
-- Never commit `.env` file to version control
-- Use strong `FLASK_SECRET_KEY` in production
-- HTTPS is automatically enabled on Replit/Render/Railway
+### 10-VDP Test Limit
 
-## Future Enhancements
+**TEMPORARY TESTING LIMIT**: Currently capped at 10 VDPs per dealer per scrape.
 
-- [ ] Database storage for historical pricing data
-- [ ] Price trend analysis and alerts
-- [ ] Email reports
-- [ ] Multi-region support
-- [ ] Scheduled automated runs
-- [ ] Price comparison charts and visualizations
+To remove for production:
+1. Set `SCRAPE_VDP_LIMIT=10000` in `.env` (or higher)
+2. Search codebase for `TODO: Remove 10-VDP limit` comments
+
+## Security
+
+- **Secrets**: All secrets in environment variables, never hardcoded
+- **API Keys**: Encrypted at rest with Fernet (AES-128)
+- **Passwords**: Hashed with bcrypt (cost factor 12)
+- **JWT**: HS256 algorithm, 30-min expiration
+- **HTTPS**: Required in production (NGINX + Let's Encrypt)
+- **Rate Limiting**: Implement on login endpoint (TODO)
 
 ## License
 
-MIT License - feel free to modify and use for your dealership needs!
+Proprietary - Ancira Auto Group
 
 ## Support
 
-For issues or questions, please open an issue on GitHub or contact your development team.
+For issues or questions, contact the development team.
 
 ---
 
-**Built with**: Flask, OpenAI GPT-4, BeautifulSoup, and deployed on free cloud hosting.
+**Status**: 🟡 Backend foundation complete. Scraping infrastructure and frontend in progress.
